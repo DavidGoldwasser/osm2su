@@ -28,16 +28,14 @@ module Sketchup::Su2osm
   modeling_tools.add_item($exStrings.GetString("Project Loose Geometry Onto SketchUp Groups")) { project_loose_geoemtry_onto_sketchup_groups }
 
   # add editable render modes menu items
-  # todo - stub these out
-  rendering_editable.add_item($exStrings.GetString("Clear Render Mode")) { setup_layers_for_background_merge }  # should turn everything white
-  rendering_editable.add_item($exStrings.GetString("Render by Space Type")) { setup_layers_for_background_merge }
-  rendering_editable.add_item($exStrings.GetString("Render by Thermal Zone")) { setup_layers_for_background_merge }
-  rendering_editable.add_item($exStrings.GetString("Render by Building Story")) { setup_layers_for_background_merge }
+  rendering_editable.add_item($exStrings.GetString("Clear Render Mode")) { clear_render_mode }  # should turn everything white
+  rendering_editable.add_item($exStrings.GetString("Render by Space Type")) { render_by_space_type }
+  rendering_editable.add_item($exStrings.GetString("Render by Thermal Zone")) { render_by_thermal_zone }
+  rendering_editable.add_item($exStrings.GetString("Render by Building Story")) { render_by_building_story }
 
   # add infered render modes menu items (things like render by air loop or design load EPD)
-  # todo - stub these out
-  rendering_infered.add_item($exStrings.GetString("Render by Air Loop")) { setup_layers_for_background_merge }
-  rendering_infered.add_item($exStrings.GetString("Render by Lighting Power Density")) { setup_layers_for_background_merge }
+  rendering_infered.add_item($exStrings.GetString("Render by Air Loop")) { render_by_air_loop }
+  rendering_infered.add_item($exStrings.GetString("Render by Lighting Power Density")) { render_by_lpd }
 
   # add items for preferences
   prefs.add_item($exStrings.GetString("Set Path to OpenStudio")) { set_path_to_openstudio }

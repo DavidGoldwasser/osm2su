@@ -126,7 +126,6 @@ module Sketchup::Su2osm
     end
 
     # loop through thermal zones to make materials
-    # loop through space types to create materials
     background_osm_model.getThermalZones.each do |thermal_zone|
       rendering_color = thermal_zone.renderingColor.get # todo - update to handle boost optional
       material = materials.add(thermal_zone.name.to_s)
@@ -138,7 +137,6 @@ module Sketchup::Su2osm
     end
 
     # loop through building stories to make materials
-    # loop through space types to create materials
     background_osm_model.getBuildingStorys.each do |story|
       rendering_color = story.renderingColor.get # todo - update to handle boost optional
       material = materials.add(story.name.to_s)
@@ -155,6 +153,7 @@ module Sketchup::Su2osm
       group = make_group(Sketchup.active_model,space.name.get,"su2osm - Space",space.xOrigin,space.yOrigin,space.zOrigin,space.directionofRelativeNorth*-1)
       group.set_attribute 'su2osm', 'space_uuid', space.handle
       group.set_attribute 'su2osm', 'entity_id', group.entityID # idea was to identify clone from original, but will need to re-populate this every time the SketchUp file is loaded (if the user saves that format)
+      group.set_attribute 'su2osm', 'surface_group_type', "space"
 
       # populate space attributes
       if space.spaceType.is_initialized and !space.isSpaceTypeDefaulted # don't add attributes if space type is defaulted
