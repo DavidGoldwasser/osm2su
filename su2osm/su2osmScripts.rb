@@ -35,7 +35,7 @@ module Sketchup::Su2osm
 
   # add infered render modes menu items (things like render by air loop or design load EPD)
   rendering_infered.add_item($exStrings.GetString("Render by Air Loop")) { render_by_air_loop }
-  rendering_infered.add_item($exStrings.GetString("Render by Lighting Power Density")) { render_by_lpd }
+  #rendering_infered.add_item($exStrings.GetString("Render by Lighting Power Density")) { render_by_lpd }
 
   # add items for preferences
   prefs.add_item($exStrings.GetString("Set Path to OpenStudio")) { set_path_to_openstudio }

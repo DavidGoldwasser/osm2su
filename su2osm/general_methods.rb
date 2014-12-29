@@ -99,6 +99,44 @@ module Sketchup::Su2osm
     puts ""
     puts ">>Rendering By Air Loop"
 
+    # air loop hash
+    air_loop_hash = {}
+
+    @background_osm_model.getAirLoopHVACs.each do |air_loop|
+      thermal_zones = []
+      # see if material already exists by this name
+      if  material_hash[air_loop.name.to_s]
+        material = material_hash[air_loop.name.to_s]
+      else
+        material = Sketchup.active_model.materials.add(air_loop.name.to_s)
+        color = Sketchup::Color.new(rand(264), rand(264), rand(264), 1.0)
+        material.color = color
+      end
+      air_loop.demandComponents.each do |component|
+        if component.to_ThermalZone.is_initialized
+          thermal_zone = component.to_ThermalZone.get
+          thermal_zones << thermal_zone.name.get
+        end
+      end
+      air_loop_hash[material] = thermal_zones
+    end
+
+    Sketchup.active_model.active_entities.each do |entity|
+      next if entity.class.to_s != "Sketchup::Group" and entity.class.to_s != "Sketchup::ComponentInstance"
+      surface_group_type = entity.get_attribute 'su2osm', 'surface_group_type'
+      next if surface_group_type.to_s != "space" # todo - should probably check layer instead of this
+      thermal_zone_name = entity.get_attribute 'su2osm', 'thermal_zone_name'
+
+      # find airloop and assign material
+      air_loop_hash.each do |k,v|
+        if v.include?(thermal_zone_name.to_s)
+          entity.material = k
+          next
+        end
+      end
+
+    end
+
   end
 
   def self.render_by_lpd

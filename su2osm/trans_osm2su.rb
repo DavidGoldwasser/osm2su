@@ -25,6 +25,7 @@ module Sketchup::Su2osm
 
     # Open OSM file
     background_osm_model = OpenStudio::Model::Model::load(OpenStudio::Path.new(open_path)).get
+    @background_osm_model = background_osm_model
 
     # number of spaces
     spaces = background_osm_model.getSpaces
@@ -105,10 +106,6 @@ module Sketchup::Su2osm
       else
         face = entities.add_face pts
       end
-    end
-
-    def self.make_material()
-
     end
 
     # get SketchUp materials
