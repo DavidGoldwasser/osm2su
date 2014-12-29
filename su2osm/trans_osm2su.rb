@@ -107,11 +107,72 @@ module Sketchup::Su2osm
       end
     end
 
+    def self.make_material()
+
+    end
+
+    # get SketchUp materials
+    materials = Sketchup.active_model.materials
+
+    # loop through space types to create materials
+    background_osm_model.getSpaceTypes.each do |space_type|
+      rendering_color = space_type.renderingColor.get # todo - update to handle boost optional
+      material = materials.add(space_type.name.to_s)
+      color = Sketchup::Color.new(rendering_color.renderingRedValue, rendering_color.renderingGreenValue, rendering_color.renderingBlueValue, rendering_color.renderingAlphaValue)
+      material.color = color
+      material.set_attribute 'su2osm', 'space_type_uuid', space_type.handle
+      material.set_attribute 'su2osm', 'space_type_entity_id', material.entityID
+      material.set_attribute 'su2osm', 'resource_type', "space_type"
+    end
+
+    # loop through thermal zones to make materials
+    # loop through space types to create materials
+    background_osm_model.getThermalZones.each do |thermal_zone|
+      rendering_color = thermal_zone.renderingColor.get # todo - update to handle boost optional
+      material = materials.add(thermal_zone.name.to_s)
+      color = Sketchup::Color.new(rendering_color.renderingRedValue, rendering_color.renderingGreenValue, rendering_color.renderingBlueValue, rendering_color.renderingAlphaValue)
+      material.color = color
+      material.set_attribute 'su2osm', 'thermal_zone_uuid', thermal_zone.handle
+      material.set_attribute 'su2osm', 'thermal_zone_entity_id', material.entityID
+      material.set_attribute 'su2osm', 'resource_type', "thermal_zone"
+    end
+
+    # loop through building stories to make materials
+    # loop through space types to create materials
+    background_osm_model.getBuildingStorys.each do |story|
+      rendering_color = story.renderingColor.get # todo - update to handle boost optional
+      material = materials.add(story.name.to_s)
+      color = Sketchup::Color.new(rendering_color.renderingRedValue, rendering_color.renderingGreenValue, rendering_color.renderingBlueValue, rendering_color.renderingAlphaValue)
+      material.color = color
+      material.set_attribute 'su2osm', 'building_story_uuid', story.handle
+      material.set_attribute 'su2osm', 'building_story_entity_id', material.entityID
+      material.set_attribute 'su2osm', 'resource_type', "building_story"
+    end
+
     # loop through spaces
     spaces.each do |space|
       # create space
-      # puts "space name: #{space.name}"
       group = make_group(Sketchup.active_model,space.name.get,"su2osm - Space",space.xOrigin,space.yOrigin,space.zOrigin,space.directionofRelativeNorth*-1)
+      group.set_attribute 'su2osm', 'space_uuid', space.handle
+      group.set_attribute 'su2osm', 'entity_id', group.entityID # idea was to identify clone from original, but will need to re-populate this every time the SketchUp file is loaded (if the user saves that format)
+
+      # populate space attributes
+      if space.spaceType.is_initialized and !space.isSpaceTypeDefaulted # don't add attributes if space type is defaulted
+        space_type = space.spaceType.get
+        group.set_attribute 'su2osm', 'space_type_name', space_type.name.to_s
+        group.set_attribute 'su2osm', 'space_type_uuid', space_type.handle
+        #puts group.get_attribute 'su2osm', 'space_type_name'
+      end
+      if space.thermalZone.is_initialized
+        thermal_zone = space.thermalZone.get
+        group.set_attribute 'su2osm', 'thermal_zone_name', thermal_zone.name.to_s
+        group.set_attribute 'su2osm', 'thermal_zone_uuid', thermal_zone.handle
+      end
+      if space.buildingStory.is_initialized
+        building_story = space.buildingStory.get
+        group.set_attribute 'su2osm', 'building_story_name', building_story.name.to_s
+        group.set_attribute 'su2osm', 'building_story_uuid', building_story.handle
+      end
 
       # loop through base surfaces
       base_surfaces = space.surfaces
