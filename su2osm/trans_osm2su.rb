@@ -29,23 +29,23 @@ module Sketchup::Su2osm
 
     # number of spaces
     spaces = background_osm_model.getSpaces
-    puts "Model has " + spaces.size.to_s + " spaces"
+    #puts "Model has " + spaces.size.to_s + " spaces"
 
     # number of base surfaces
     base_surfaces = background_osm_model.getSurfaces
-    puts "Model has " + base_surfaces.size.to_s + " base surfaces"
+    #puts "Model has " + base_surfaces.size.to_s + " base surfaces"
 
     # number of base surfaces
     sub_surfaces = background_osm_model.getSubSurfaces
-    puts "Model has " + sub_surfaces.size.to_s + " sub surfaces"
+    #puts "Model has " + sub_surfaces.size.to_s + " sub surfaces"
 
     # number of surfaces
     shading_surfaces = background_osm_model.getShadingSurfaces
-    puts "Model has " + shading_surfaces.size.to_s + " shading surfaces"
+    #puts "Model has " + shading_surfaces.size.to_s + " shading surfaces"
 
     # number of surfaces
     partition_surfaces = background_osm_model.getInteriorPartitionSurfaces
-    puts "Model has " + partition_surfaces.size.to_s + " interior partition surfaces"
+    #puts "Model has " + partition_surfaces.size.to_s + " interior partition surfaces"
 
     # get SketchUp model and entities
     skp_model = Sketchup.active_model
@@ -113,9 +113,13 @@ module Sketchup::Su2osm
 
     # loop through space types to create materials
     background_osm_model.getSpaceTypes.each do |space_type|
-      rendering_color = space_type.renderingColor.get # todo - update to handle boost optional
       material = materials.add(space_type.name.to_s)
-      color = Sketchup::Color.new(rendering_color.renderingRedValue, rendering_color.renderingGreenValue, rendering_color.renderingBlueValue, rendering_color.renderingAlphaValue)
+      if space_type.renderingColor.is_initialized
+        rendering_color = space_type.renderingColor.get
+        color = Sketchup::Color.new(rendering_color.renderingRedValue, rendering_color.renderingGreenValue, rendering_color.renderingBlueValue, rendering_color.renderingAlphaValue)
+      else
+        color = Sketchup::Color.new(rand(264), rand(264), rand(264), 1.0)
+      end
       material.color = color
       material.set_attribute 'su2osm', 'space_type_uuid', space_type.handle
       material.set_attribute 'su2osm', 'space_type_entity_id', material.entityID
@@ -124,9 +128,13 @@ module Sketchup::Su2osm
 
     # loop through thermal zones to make materials
     background_osm_model.getThermalZones.each do |thermal_zone|
-      rendering_color = thermal_zone.renderingColor.get # todo - update to handle boost optional
       material = materials.add(thermal_zone.name.to_s)
-      color = Sketchup::Color.new(rendering_color.renderingRedValue, rendering_color.renderingGreenValue, rendering_color.renderingBlueValue, rendering_color.renderingAlphaValue)
+      if thermal_zone.renderingColor.is_initialized
+        rendering_color = thermal_zone.renderingColor.get
+        color = Sketchup::Color.new(rendering_color.renderingRedValue, rendering_color.renderingGreenValue, rendering_color.renderingBlueValue, rendering_color.renderingAlphaValue)
+      else
+        color = Sketchup::Color.new(rand(264), rand(264), rand(264), 1.0)
+      end
       material.color = color
       material.set_attribute 'su2osm', 'thermal_zone_uuid', thermal_zone.handle
       material.set_attribute 'su2osm', 'thermal_zone_entity_id', material.entityID
@@ -135,9 +143,13 @@ module Sketchup::Su2osm
 
     # loop through building stories to make materials
     background_osm_model.getBuildingStorys.each do |story|
-      rendering_color = story.renderingColor.get # todo - update to handle boost optional
       material = materials.add(story.name.to_s)
-      color = Sketchup::Color.new(rendering_color.renderingRedValue, rendering_color.renderingGreenValue, rendering_color.renderingBlueValue, rendering_color.renderingAlphaValue)
+      if story.renderingColor.is_initialized
+        rendering_color = story.renderingColor.get
+        color = Sketchup::Color.new(rendering_color.renderingRedValue, rendering_color.renderingGreenValue, rendering_color.renderingBlueValue, rendering_color.renderingAlphaValue)
+      else
+        color = Sketchup::Color.new(rand(264), rand(264), rand(264), 1.0)
+      end
       material.color = color
       material.set_attribute 'su2osm', 'building_story_uuid', story.handle
       material.set_attribute 'su2osm', 'building_story_entity_id', material.entityID
@@ -157,7 +169,7 @@ module Sketchup::Su2osm
         space_type = space.spaceType.get
         group.set_attribute 'su2osm', 'space_type_name', space_type.name.to_s
         group.set_attribute 'su2osm', 'space_type_uuid', space_type.handle
-        #puts group.get_attribute 'su2osm', 'space_type_name'
+        puts group.get_attribute 'su2osm', 'space_type_name'
       end
       if space.thermalZone.is_initialized
         thermal_zone = space.thermalZone.get
@@ -255,7 +267,10 @@ module Sketchup::Su2osm
     #zoom extents
     view = Sketchup.active_model.active_view
     new_view = view.zoom_extents
-      
+
+    # set default rendermode
+    render_by_space_type
+
   end
 
 end # module Sketchup::Su2osm

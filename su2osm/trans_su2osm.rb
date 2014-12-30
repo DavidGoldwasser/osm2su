@@ -16,17 +16,24 @@ module Sketchup::Su2osm
 
     # brose for file
     merge_path = 'C:\Users\dgoldwas\Documents\aaaWorking\test2.osm' #runner.getStringArgumentValue("merge_path",user_arguments)
-    merge_selected_only = false #runner.getBoolArgumentValue("merge_selected_only",user_arguments)
 
     # dialog for user to browse to osm file to open
     merge_path = UI.savepanel("Merge SketchUp Groups to OSM file", "", "*.osm")
 
     # gather user input
-    prompts = ["Merge Selected Spaces Only?"]
-    defaults = [false]
-    list = ["true|false"]
+    prompts = ["Scope of Merge","Merge Geometry","Merge Space Attributes"]
+    defaults = ["All Groups",true,true]
+    list = ["Selected Groups|All Groups","true","true"] # don't enable false as option until I update code to support it.
     input = UI.inputbox(prompts, defaults, list, "Merge SketchUp Groups to OSM file")
-    selection_only = input[0]
+    merge_scope = input[0]
+    merge_geometry = input[1]
+    merge_space_attributes = input[2]
+
+    if input[0] == "All Groups"
+      merge_selected_only = false
+    else
+      merge_selected_only = true
+    end
 
     # Open OSM file
     if not OpenStudio::Model::Model::load(OpenStudio::Path.new(merge_path)).empty?
@@ -61,7 +68,7 @@ module Sketchup::Su2osm
     #get spaces shading groups and interior partition groups
 
     #create def to make space
-    def self.make_space(name,xOrigin,yOrigin,zOrigin,rotation)
+    def self.make_space(name,xOrigin,yOrigin,zOrigin,rotation,space_type,thermal_zone,building_story)
 
       #flag to create new space
       need_space = true
@@ -84,6 +91,11 @@ module Sketchup::Su2osm
           space.setZOrigin(zOrigin.to_f)
           space.setDirectionofRelativeNorth(rotation)
 
+          # set space attributes
+          if !space_type.nil? then space.setSpaceType(space_type) end
+          if !thermal_zone.nil? then space.setThermalZone(thermal_zone) end
+          if !building_story.nil? then space.setBuildingStory(building_story) end
+
           @result = space
           @current_spaces << space
 
@@ -102,6 +114,12 @@ module Sketchup::Su2osm
         space.setYOrigin(yOrigin.to_f)
         space.setZOrigin(zOrigin.to_f)
         space.setDirectionofRelativeNorth(rotation)
+
+        # set space attributes
+        if !space_type.nil? then space.setSpaceType(space_type) end
+        if !thermal_zone.nil? then space.setThermalZone(thermal_zone) end
+        if !building_story.nil? then space.setBuildingStory(building_story) end
+
         @result = space
       end
 
@@ -494,6 +512,22 @@ module Sketchup::Su2osm
       end
     end #end of entities.each.do
 
+    # make hashes of space types, thermal zones, and building stories
+    space_type_hash = {}
+    @background_osm_model.getSpaceTypes.each do |space_type|
+      space_type_hash[space_type.name.to_s] = space_type
+    end
+    thermal_zone_hash = {}
+    @background_osm_model.getThermalZones.each do |thermal_zone|
+      thermal_zone_hash[thermal_zone.name.to_s] = thermal_zone
+    end
+    building_story_hash = {}
+    @background_osm_model.getBuildingStorys.each do |building_story|
+      building_story_hash[building_story.name.to_s] = building_story
+    end
+
+    # todo - add code here to support new resources, and also update color on existing resoruces.
+
     # make array of groups in model. Rename duplicate names on the fly
     groupNames = []
 
@@ -542,11 +576,13 @@ module Sketchup::Su2osm
 
       # this was added to catch flipped group or group with scale of -1 that isn't caught by test above
       t.extend(TransformationHelper)
-      if t.flipped_x?.inspect then explodeNeededFlag = true end
-      if t.flipped_y?.inspect then explodeNeededFlag = true end
-      if t.flipped_z?.inspect then explodeNeededFlag = true end
+      # todo this is showing as true even when it shouldn't be, commented out for now, may break mirrored groups and components.
+      #if t.flipped_x?.inspect then explodeNeededFlag = true end
+      #if t.flipped_y?.inspect then explodeNeededFlag = true end
+      #if t.flipped_z?.inspect then explodeNeededFlag = true end
 
       if explodeNeededFlag == true
+        puts "exploding group, attributes will be lost."
 
         # gather group inputs
         oldGroup = group
@@ -597,8 +633,19 @@ module Sketchup::Su2osm
         puts "Top level group on interior partition layer is not valid. It will not be translated"
       elsif group.layer.name == "su2osm - Space"
 
+        # store attributes for space for current render mode
+        store_current_material_to_space_attributes(group)
+
+        # gather space attributes
+        space_type_name = group.get_attribute 'su2osm', 'space_type_name'
+        space_type = space_type_hash[space_type_name.to_s]
+        thermal_zone_name = group.get_attribute 'su2osm', 'thermal_zone_name'
+        thermal_zone = thermal_zone_hash[thermal_zone_name.to_s]
+        building_story_name = group.get_attribute 'su2osm', 'building_story_name'
+        building_story = building_story_hash[building_story_name.to_s]
+
         #make or update space
-        space = make_space(group.name,t.origin.x.to_m,t.origin.y.to_m,t.origin.z.to_m,t.rotz*-1)
+        space = make_space(group.name,t.origin.x.to_m,t.origin.y.to_m,t.origin.z.to_m,t.rotz*-1,space_type,thermal_zone,building_story)
         #add to array of shading groups
         #make surfaces
         make_space_surfaces(space,group)
