@@ -18,10 +18,13 @@ module Sketchup::Su2osm
     open_path = UI.openpanel("Import OSM file as SketchUp Groups", "", "*.osm")
 
     puts ""
-    puts ">>import start"
+    puts ">>import start" # todo - would nice to have dialog stay open and then maybe one providing stats after it is done
 
     puts ""
     puts "File - " + open_path
+
+    # this is useful when opening multiple models to set attributes not yet triggered by render mode change or save
+    clear_render_mode
 
     # Open OSM file
     background_osm_model = OpenStudio::Model::Model::load(OpenStudio::Path.new(open_path)).get
@@ -108,19 +111,28 @@ module Sketchup::Su2osm
       end
     end
 
-    # get SketchUp materials
+    # get SketchUp materials, and store in hash to check as new materials are made
     materials = Sketchup.active_model.materials
+    materials_hash = {}
+    materials.each { |material|
+      materials_hash[material.name] = material
+    }
 
     # loop through space types to create materials
     background_osm_model.getSpaceTypes.each do |space_type|
-      material = materials.add(space_type.name.to_s)
+      if materials_hash[space_type.name.to_s].nil?
+        material = materials.add(space_type.name.to_s)
+      else
+        material = materials_hash[space_type.name.to_s]
+      end
       if space_type.renderingColor.is_initialized
         rendering_color = space_type.renderingColor.get
-        color = Sketchup::Color.new(rendering_color.renderingRedValue, rendering_color.renderingGreenValue, rendering_color.renderingBlueValue, rendering_color.renderingAlphaValue)
+        color = Sketchup::Color.new(rendering_color.renderingRedValue, rendering_color.renderingGreenValue, rendering_color.renderingBlueValue, 255) # set alpha at material, not color
       else
-        color = Sketchup::Color.new(rand(264), rand(264), rand(264), 1.0)
+        color = Sketchup::Color.new(rand(255), rand(255), rand(255), 1.0)
       end
       material.color = color
+      material.alpha = rendering_color.renderingAlphaValue/255.0 # fraction is used in Sketchup
       material.set_attribute 'su2osm', 'space_type_uuid', space_type.handle
       material.set_attribute 'su2osm', 'space_type_entity_id', material.entityID
       material.set_attribute 'su2osm', 'resource_type', "space_type"
@@ -128,14 +140,19 @@ module Sketchup::Su2osm
 
     # loop through thermal zones to make materials
     background_osm_model.getThermalZones.each do |thermal_zone|
-      material = materials.add(thermal_zone.name.to_s)
+      if materials_hash[thermal_zone.name.to_s].nil?
+        material = materials.add(thermal_zone.name.to_s)
+      else
+        material = materials_hash[thermal_zone.name.to_s]
+      end
       if thermal_zone.renderingColor.is_initialized
         rendering_color = thermal_zone.renderingColor.get
-        color = Sketchup::Color.new(rendering_color.renderingRedValue, rendering_color.renderingGreenValue, rendering_color.renderingBlueValue, rendering_color.renderingAlphaValue)
+        color = Sketchup::Color.new(rendering_color.renderingRedValue, rendering_color.renderingGreenValue, rendering_color.renderingBlueValue, 255) # set alpha at material, not color
       else
-        color = Sketchup::Color.new(rand(264), rand(264), rand(264), 1.0)
+        color = Sketchup::Color.new(rand(255), rand(255), rand(255), 1.0)
       end
       material.color = color
+      material.alpha = rendering_color.renderingAlphaValue/255.0 # fraction is used in Sketchup
       material.set_attribute 'su2osm', 'thermal_zone_uuid', thermal_zone.handle
       material.set_attribute 'su2osm', 'thermal_zone_entity_id', material.entityID
       material.set_attribute 'su2osm', 'resource_type', "thermal_zone"
@@ -143,14 +160,19 @@ module Sketchup::Su2osm
 
     # loop through building stories to make materials
     background_osm_model.getBuildingStorys.each do |story|
-      material = materials.add(story.name.to_s)
+      if materials_hash[story.name.to_s].nil?
+        material = materials.add(story.name.to_s)
+      else
+        material = materials_hash[story.name.to_s]
+      end
       if story.renderingColor.is_initialized
         rendering_color = story.renderingColor.get
-        color = Sketchup::Color.new(rendering_color.renderingRedValue, rendering_color.renderingGreenValue, rendering_color.renderingBlueValue, rendering_color.renderingAlphaValue)
+        color = Sketchup::Color.new(rendering_color.renderingRedValue, rendering_color.renderingGreenValue, rendering_color.renderingBlueValue, 255) # set alpha at material, not color
       else
-        color = Sketchup::Color.new(rand(264), rand(264), rand(264), 1.0)
+        color = Sketchup::Color.new(rand(255), rand(255), rand(255), 1.0)
       end
       material.color = color
+      material.alpha = rendering_color.renderingAlphaValue/255.0 # fraction is used in Sketchup
       material.set_attribute 'su2osm', 'building_story_uuid', story.handle
       material.set_attribute 'su2osm', 'building_story_entity_id', material.entityID
       material.set_attribute 'su2osm', 'resource_type', "building_story"
@@ -169,7 +191,7 @@ module Sketchup::Su2osm
         space_type = space.spaceType.get
         group.set_attribute 'su2osm', 'space_type_name', space_type.name.to_s
         group.set_attribute 'su2osm', 'space_type_uuid', space_type.handle
-        puts group.get_attribute 'su2osm', 'space_type_name'
+        #puts group.get_attribute 'su2osm', 'space_type_name'
       end
       if space.thermalZone.is_initialized
         thermal_zone = space.thermalZone.get

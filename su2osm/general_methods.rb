@@ -77,6 +77,20 @@ module Sketchup::Su2osm
           # do nothing with this material. We are not in a render mode that supports painting attributes
         end
       end
+    else
+      # clear out attribute if there was one, based on rendering mode
+      if @render_mode == "space_type_name"
+        group.set_attribute 'su2osm', 'space_type_name', ""
+        group.set_attribute 'su2osm', 'space_type_uuid', ""
+      elsif @render_mode == "thermal_zone_name"
+        group.set_attribute 'su2osm', 'thermal_zone_name', ""
+        group.set_attribute 'su2osm', 'thermal_zone_uuid', ""
+      elsif @render_mode == "building_story_name"
+        group.set_attribute 'su2osm', 'building_story_name', ""
+        group.set_attribute 'su2osm', 'building_story_uuid', ""
+      else
+        # do nothing with this material. We are not in a render mode that supports painting attributes
+      end
     end
 
   end
@@ -104,6 +118,7 @@ module Sketchup::Su2osm
     end
 
     # todo - later I'll need to drill down to surfaces and other groups. I'll also have to do this when I switch between surface vs. space render modes.
+    # todo - using purge unused resources breaks things. It would be nice to re-generage missing expected materials on the fly (for materials that existed in OSM we could extract color, for materials not yet in OSM we can't recover material)
 
     @render_mode = string
     status = Sketchup.active_model.commit_operation
@@ -175,17 +190,13 @@ module Sketchup::Su2osm
       store_current_material_to_space_attributes(entity)
 
       # find airloop and assign material
-      found_match = false
+      entity.material = nil
       air_loop_hash.each do |k,v|
         if v.include?(thermal_zone_name.to_s)
           entity.material = k
-          found_match = true
           next
         end
       end
-
-      # make white if didn't find a match
-      if not found_match then entity.material = nil end
 
     end
 

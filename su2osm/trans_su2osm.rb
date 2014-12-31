@@ -48,7 +48,7 @@ module Sketchup::Su2osm
     @interior_partition_groups = @background_osm_model.getInteriorPartitionSurfaceGroups
 
     puts ""
-    puts ">>merge start"
+    puts ">>merge start"  # todo - would be nice ot have dialog for this
 
     puts ""
 
@@ -141,7 +141,7 @@ module Sketchup::Su2osm
       if group.class.to_s == "Sketchup::Group"
         entities = group.entities
       else group.class.to_s == "Sketchup::ComponentInstance"
-        entities = group.definition.entities 
+        entities = group.definition.entities
       end
 
       #categorize surfaces
@@ -526,7 +526,84 @@ module Sketchup::Su2osm
       building_story_hash[building_story.name.to_s] = building_story
     end
 
-    # todo - add code here to support new resources, and also update color on existing resoruces.
+    # add new resources and edit display color for existing ones
+    Sketchup.active_model.materials.each do |material|
+      resource_type = material.get_attribute 'su2osm', 'resource_type'
+      r = material.color.red
+      g = material.color.green
+      b = material.color.blue
+      alpha = material.alpha # get from material, and not color
+      if resource_type == "space_type"
+        if space_type_hash[material.name.to_s].nil?
+          # make new resource and add to hash
+          resource = OpenStudio::Model::SpaceType.new(@background_osm_model)
+          resource.setName(material.name)
+          rendering_color = OpenStudio::Model::RenderingColor.new(@background_osm_model)
+          resource.setRenderingColor(rendering_color)
+          space_type_hash[resource.name.to_s] = resource
+        else
+          # update color on existing resource
+          resource = space_type_hash[material.name.to_s]
+          rendering_color = resource.renderingColor
+          if rendering_color.is_initialized
+            rendering_color = rendering_color.get
+          else
+            rendering_color = OpenStudio::Model::RenderingColor.new(@background_osm_model)
+          end
+        end
+
+      elsif resource_type == "thermal_zone"
+        if thermal_zone_hash[material.name.to_s].nil?
+          # make new resource and add to hash
+          resource = OpenStudio::Model::ThermalZone.new(@background_osm_model)
+          resource.setName(material.name)
+          rendering_color = OpenStudio::Model::RenderingColor.new(@background_osm_model)
+          resource.setRenderingColor(rendering_color)
+          thermal_zone_hash[resource.name.to_s] = resource
+        else
+          # update color on existing resource
+          resource = thermal_zone_hash[material.name.to_s]
+          rendering_color = resource.renderingColor
+          if rendering_color.is_initialized
+            rendering_color = rendering_color.get
+          else
+            rendering_color = OpenStudio::Model::RenderingColor.new(@background_osm_model)
+          end
+        end
+
+      elsif resource_type == "building_story"
+        if building_story_hash[material.name.to_s].nil?
+          # make new resource and add to hash
+          resource = OpenStudio::Model::BuildingStory.new(@background_osm_model)
+          resource.setName(material.name)
+          rendering_color = OpenStudio::Model::RenderingColor.new(@background_osm_model)
+          resource.setRenderingColor(rendering_color)
+          building_story_hash[resource.name.to_s] = resource
+        else
+          # update color on existing resource
+          resource = building_story_hash[material.name.to_s]
+          rendering_color = resource.renderingColor
+          if rendering_color.is_initialized
+            rendering_color = rendering_color.get
+          else
+            rendering_color = OpenStudio::Model::RenderingColor.new(@background_osm_model)
+          end
+        end
+
+      else
+        # no attributes on material or unexpected resource type
+        next
+      end
+
+      # set rendering color
+      rendering_color.setRenderingRedValue(r)
+      rendering_color.setRenderingGreenValue(g)
+      rendering_color.setRenderingBlueValue(b)
+      integer_alpha = alpha*255.0.round
+      rendering_color.setRenderingAlphaValue(integer_alpha.to_i) # convert from fraction to 0-255 value
+
+    end
+
 
     # make array of groups in model. Rename duplicate names on the fly
     groupNames = []
@@ -576,10 +653,9 @@ module Sketchup::Su2osm
 
       # this was added to catch flipped group or group with scale of -1 that isn't caught by test above
       t.extend(TransformationHelper)
-      # todo this is showing as true even when it shouldn't be, commented out for now, may break mirrored groups and components.
-      #if t.flipped_x?.inspect then explodeNeededFlag = true end
-      #if t.flipped_y?.inspect then explodeNeededFlag = true end
-      #if t.flipped_z?.inspect then explodeNeededFlag = true end
+      if t.flipped_x? then explodeNeededFlag = true end
+      if t.flipped_y? then explodeNeededFlag = true end
+      if t.flipped_z? then explodeNeededFlag = true end
 
       if explodeNeededFlag == true
         puts "exploding group, attributes will be lost."
@@ -589,10 +665,17 @@ module Sketchup::Su2osm
         parent = group.parent
         name = group.name
         layer = group.layer
+        material = group.material
+
+        # space attributes that might need
+        space_type = group.get_attribute 'su2osm', 'space_type_name'
+        thermal_zone = group.get_attribute 'su2osm', 'thermal_zone_name'
+        building_story = group.get_attribute 'su2osm', 'building_story_name'
+        surface_group_type = group.get_attribute 'su2osm', 'surface_group_type'
 
         # make new group and set transformation
+        group.material=nil # clear out material before surfaces move to copy
         group = parent.entities.add_group(oldGroup)
-        #set name and layer
         # create group set group origin, rotation
         point = Geom::Point3d.new t.origin.x,t.origin.y,t.origin.z
         rotation = t.rotz
@@ -608,6 +691,13 @@ module Sketchup::Su2osm
         # set layer and name
         group.name=name
         group.layer=layer
+        group.material=material
+
+        # set attributes
+        group.set_attribute 'su2osm', 'space_type_name', space_type
+        group.set_attribute 'su2osm', 'thermal_zone_name', thermal_zone
+        group.set_attribute 'su2osm', 'building_story_name', building_story
+        group.set_attribute 'su2osm', 'surface_group_type', surface_group_type
 
         # explode group contents
         oldGroup.explode
@@ -657,7 +747,7 @@ module Sketchup::Su2osm
         if group.class.to_s == "Sketchup::Group"
           entities = group.entities
         else group.class.to_s == "Sketchup::ComponentInstance"
-        entities = group.definition.entities 
+        entities = group.definition.entities
         end
 
         entities.each do |group_entity|
@@ -747,7 +837,6 @@ module Sketchup::Su2osm
 
 end # module Sketchup::Su2osm
 
-# todo - see if this is still needed in 2015, and think about what modeule name should be
 module TransformationHelper  # this was added to identify if a group in SketchUp has scale of -1
 
   def flipped_x?
