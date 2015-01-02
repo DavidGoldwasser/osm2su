@@ -54,6 +54,8 @@ module Sketchup::Su2osm
     skp_model = Sketchup.active_model
     entities = skp_model.active_entities
 
+    status = skp_model.start_operation('Import OSM file as SketchUp Groups', true) # todo - this isn't doing what I thought, need to undo surface by surface
+
     # create layers matched to OpenStudio surface group types
     layers = skp_model.layers
     new_layer = layers.add("su2osm - SiteShadingGroup")
@@ -292,6 +294,8 @@ module Sketchup::Su2osm
 
     # set default rendermode
     render_by_space_type
+
+    status = skp_model.commit_operation
 
   end
 

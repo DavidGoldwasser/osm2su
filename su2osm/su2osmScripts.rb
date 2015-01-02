@@ -25,7 +25,7 @@ module Sketchup::Su2osm
   # add modeling tools menu items
   modeling_tools.add_item($exStrings.GetString("Create Layers used by su2osm")) { setup_layers_for_background_merge }
   modeling_tools.add_item($exStrings.GetString("Create SketchUp Groups From Diagram")) { create_sketchup_groups_from_diagram }
-  modeling_tools.add_item($exStrings.GetString("Project Loose Geometry Onto SketchUp Groups")) { project_loose_geoemtry_onto_sketchup_groups }
+  modeling_tools.add_item($exStrings.GetString("Project Loose Geometry Onto SketchUp Groups")) { project_loose_geometry_onto_sketchup_groups }
 
   # add editable render modes menu items
   rendering_editable.add_item($exStrings.GetString("Clear Render Mode")) { clear_render_mode }  # should turn everything white

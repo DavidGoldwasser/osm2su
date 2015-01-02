@@ -34,6 +34,8 @@ module Sketchup::Su2osm
     suModel = Sketchup.active_model
     selection = suModel.selection
 
+    status = suModel.start_operation('Create SketchUp Groups from Diagram', true)
+
     # save selection
     saved_selection = []
     selection.each {|e| saved_selection << e}
@@ -140,12 +142,13 @@ module Sketchup::Su2osm
       thermal_diagram = Sketchup.active_model.entities.add_group(saved_selection)
       thermal_diagram.layer = new_layer_diagram
 
+      status = suModel.commit_operation
+
     end #end of if valid_diagram
       
   end
 
-  def self.project_loose_geoemtry_onto_sketchup_groups
-
+  def self.project_loose_geometry_onto_sketchup_groups
 
     # gather user input
     prompts = ["Project Only Selected Loose Geometry?"]
@@ -160,6 +163,8 @@ module Sketchup::Su2osm
     selection = suModel.selection
     groups = []
     components = []
+
+    status = suModel.start_operation('Project Loose Geometry onto SketchUp Groups', true)
 
     if selection_only == "false" # comes out of input as string vs. bool
       selection = entities
@@ -211,7 +216,10 @@ module Sketchup::Su2osm
 
     # make group out of selection and put onto OS Loose Geometry Layer
     loose_geometry = Sketchup.active_model.entities.add_group(saved_selection)
-      loose_geometry.layer = new_layer    
+    loose_geometry.layer = new_layer
+
+    status = suModel.commit_operation
+
   end
 
 end # module Sketchup::Su2osm

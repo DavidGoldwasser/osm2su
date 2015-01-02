@@ -6,6 +6,10 @@ module Sketchup::Su2osm
 
   def self.merge_sketchup_groups_to_osm_file
 
+    # while this won't allow undoing of saving to the osm, it may undo changes made to the model (e.g. components being exploded)
+    model = Sketchup.active_model
+    status = model.start_operation('Merge SketchUp Groups to OSM file', true)
+
     # load openstudio
     begin
       require Sketchup.read_default("su2osm","openstudio_path").to_s
@@ -21,13 +25,15 @@ module Sketchup::Su2osm
     merge_path = UI.savepanel("Merge SketchUp Groups to OSM file", "", "*.osm")
 
     # gather user input
-    prompts = ["Scope of Merge","Merge Geometry","Merge Space Attributes"]
-    defaults = ["All Groups",true,true]
-    list = ["Selected Groups|All Groups","true","true"] # don't enable false as option until I update code to support it.
+    prompts = ["Scope of Merge","Merge Geometry","Merge Space Attributes","Intersect Surfaces","Match Surfaces"]
+    defaults = ["All Groups",true,true,false,false]
+    list = ["Selected Groups|All Groups","true","true","true|false","true|false"] # don't enable false as option until I update code to support it.
     input = UI.inputbox(prompts, defaults, list, "Merge SketchUp Groups to OSM file")
     merge_scope = input[0]
     merge_geometry = input[1]
     merge_space_attributes = input[2]
+    intersect_surfaces = input[3]
+    match_surfaces = input[4]
 
     if input[0] == "All Groups"
       merge_selected_only = false
@@ -829,9 +835,30 @@ module Sketchup::Su2osm
 
     #todo - would be nice to keep check similar to know if file was saved elsewhere since the import happened, offer to reload or cancel operation.
 
+    #put all of the spaces in the model into a vector
+      if intersect_surfaces or match_surfaces
+      spaces = OpenStudio::Model::SpaceVector.new
+      @background_osm_model.getSpaces.each do |space|
+        spaces << space
+      end
+    end
+
+    # intersect surfaces
+    if intersect_surfaces
+      OpenStudio::Model.intersectSurfaces(spaces)
+      puts "to see result of intersection re-load model from file"
+    end
+
+    #match surfaces for each space in the vector
+    if match_surfaces
+      OpenStudio::Model.matchSurfaces(spaces)
+    end
+
     #save the model
     @background_osm_model.save(merge_path,true)
     puts "model saved to #{merge_path}"
+
+    status = model.commit_operation
 
   end
 
