@@ -26,6 +26,10 @@ module Sketchup::Su2osm
     # this is useful when opening multiple models to set attributes not yet triggered by render mode change or save
     clear_render_mode
 
+    # remove existing osm2su objects
+    # todo - this is not working as expected and is causing crashes
+    #remove_osm2su_objects
+
     # Open OSM file
     background_osm_model = OpenStudio::Model::Model::load(OpenStudio::Path.new(open_path)).get
     @background_osm_model = background_osm_model
@@ -53,7 +57,6 @@ module Sketchup::Su2osm
     # get SketchUp model and entities
     skp_model = Sketchup.active_model
     entities = skp_model.active_entities
-
     status = skp_model.start_operation('Import OSM file as SketchUp Groups', true) # todo - this isn't doing what I thought, need to undo surface by surface
 
     # create layers matched to OpenStudio surface group types
@@ -134,7 +137,7 @@ module Sketchup::Su2osm
         color = Sketchup::Color.new(rand(255), rand(255), rand(255), 1.0)
       end
       material.color = color
-      material.alpha = rendering_color.renderingAlphaValue/255.0 # fraction is used in Sketchup
+      if space_type.renderingColor.is_initialized then material.alpha = rendering_color.renderingAlphaValue/255.0 end  # fraction is used in Sketchup
       material.set_attribute 'su2osm', 'space_type_uuid', space_type.handle
       material.set_attribute 'su2osm', 'space_type_entity_id', material.entityID
       material.set_attribute 'su2osm', 'resource_type', "space_type"
@@ -154,7 +157,7 @@ module Sketchup::Su2osm
         color = Sketchup::Color.new(rand(255), rand(255), rand(255), 1.0)
       end
       material.color = color
-      material.alpha = rendering_color.renderingAlphaValue/255.0 # fraction is used in Sketchup
+      if thermal_zone.renderingColor.is_initialized then material.alpha = rendering_color.renderingAlphaValue/255.0 end  # fraction is used in Sketchup
       material.set_attribute 'su2osm', 'thermal_zone_uuid', thermal_zone.handle
       material.set_attribute 'su2osm', 'thermal_zone_entity_id', material.entityID
       material.set_attribute 'su2osm', 'resource_type', "thermal_zone"
@@ -174,7 +177,7 @@ module Sketchup::Su2osm
         color = Sketchup::Color.new(rand(255), rand(255), rand(255), 1.0)
       end
       material.color = color
-      material.alpha = rendering_color.renderingAlphaValue/255.0 # fraction is used in Sketchup
+      if story.renderingColor.is_initialized then material.alpha = rendering_color.renderingAlphaValue/255.0 end  # fraction is used in Sketchup
       material.set_attribute 'su2osm', 'building_story_uuid', story.handle
       material.set_attribute 'su2osm', 'building_story_entity_id', material.entityID
       material.set_attribute 'su2osm', 'resource_type', "building_story"

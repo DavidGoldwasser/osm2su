@@ -125,6 +125,29 @@ module Sketchup::Su2osm
 
   end
 
+  def self.remove_osm2su_objects
+
+    # remove materials used by osm2su
+    materials = Sketchup.active_model.materials
+    materials.each do |material|
+      resource_type =  material.get_attribute 'su2osm', 'resource_type'
+      #next if resource_type == ""
+      materials.remove(material)
+    end
+
+    # remove groups used by osm2su
+    entities = Sketchup.active_model.active_entities
+    puts entities.size
+    entities.each do |entity|
+      #next if entity.class.to_s != "Sketchup::Group" and entity.class.to_s != "Sketchup::ComponentInstance"
+      #surface_group_type = entity.get_attribute 'su2osm', 'surface_group_type'
+      #next if surface_group_type == ""
+      puts "removing #{entity.class} named #{entity.name}"
+      entity.erase!
+    end
+
+  end
+
   def self.clear_render_mode
 
     space_attribute_render_mode("")
